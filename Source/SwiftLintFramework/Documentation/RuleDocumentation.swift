@@ -32,16 +32,25 @@ struct RuleDocumentation {
     var fileContents: String {
         let description = ruleType.description
         var content = [h1(description.name), description.description, detailsSummary(ruleType.init())]
+
         let nonTriggeringExamples = description.nonTriggeringExamples.filter { !$0.excludeFromDocumentation }
-        if nonTriggeringExamples.isNotEmpty {
-            content += [h2("Non Triggering Examples")]
-            content += nonTriggeringExamples.map(formattedCode)
-        }
         let triggeringExamples = description.triggeringExamples.filter { !$0.excludeFromDocumentation }
-        if triggeringExamples.isNotEmpty {
-            content += [h2("Triggering Examples")]
-            content += triggeringExamples.map(formattedCode)
-        }
+
+        let examplesContainer = """
+            <table>
+              <tr>
+                <th>Non Triggering Examples</th>
+                <th>Triggering Examples</th>
+              </tr>
+              <tr>
+                <td>%@</td>
+                <td>%@</td>
+              </tr>
+            </table>
+            """
+        let tables = [examplesTable(nonTriggeringExamples), examplesTable(triggeringExamples)]
+        content += [String(format: examplesContainer, arguments: tables)]
+
         return content.joined(separator: "\n\n")
     }
 }
@@ -66,10 +75,14 @@ private func detailsSummary(_ rule: Rule) -> String {
         """
 }
 
-private func formattedCode(_ example: Example) -> String {
-    return """
-        ```swift
-        \(example.code)
-        ```
-        """
+private func examplesTable(_ examples: [Example]) -> String {
+    var html = ""
+    html += "<table class=\"examplesTable\">\n"
+    examples.forEach {
+        html += "<tr><pre><code class=\"language-swift swift\">\n"
+        html += $0.code
+        html += "</code></pre></tr>\n"
+    }
+    html += "</table>"
+    return html
 }
